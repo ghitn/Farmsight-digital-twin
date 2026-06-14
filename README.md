@@ -1,4 +1,4 @@
-# 🌾 FarmSight — Digital Twin for Precision Agriculture
+# FarmSight — Digital Twin for Precision Agriculture
 
 FarmSight is a real-time **digital twin platform** for smart farming that combines weather intelligence, crop growth simulation, NDVI satellite imagery, and AI-driven recommendations into a single interactive dashboard.
 
@@ -6,20 +6,20 @@ Built with Flask, Three.js, Plotly, and Facebook Prophet.
 
 ---
 
-## ✨ Features
+## Features
 
-- **🌤 Real-Time Weather Monitoring** — Live temperature, humidity, rainfall, and soil moisture tracking
-- **🌱 3D Crop Digital Twin** — Interactive Three.js visualization of crop growth stages (seedling → maturity) with realistic stem, leaf, and grain head rendering
-- **🛰️ NDVI Satellite Imagery** — Aerial vegetation index analysis showing field-level crop health
-- **🗺️ NDVI Heatmap** — Plotly-powered grid visualization of vegetation density across the field
-- **📈 Soil Moisture Forecasting** — 7-day predictive forecast using Facebook Prophet time-series model
-- **🤖 AI Recommendations** — Reinforcement learning agent (Q-learning) that suggests when to irrigate, fertilize, or wait
-- **💧 Manual Controls** — One-click irrigate and fertilize actions that update the digital twin state in real time
-- **🎨 Dark Theme UI** — Premium glassmorphism design with smooth animations and responsive layout
+- Real-Time Weather Monitoring** — Live temperature, humidity, rainfall, and soil moisture tracking
+- 3D Crop Digital Twin** — Interactive Three.js visualization of crop growth stages (seedling → maturity) with realistic stem, leaf, and grain head rendering
+- **NDVI Satellite Imagery** — Aerial vegetation index analysis showing field-level crop health
+- **NDVI Heatmap** — Plotly-powered grid visualization of vegetation density across the field
+- **Soil Moisture Forecasting** — 7-day predictive forecast using Facebook Prophet time-series model
+- **AI Recommendations** — Reinforcement learning agent (Q-learning) that suggests when to irrigate, fertilize, or wait
+- **Manual Controls** — One-click irrigate and fertilize actions that update the digital twin state in real time
+- **Dark Theme UI** — Premium glassmorphism design with smooth animations and responsive layout
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -47,7 +47,7 @@ Built with Flask, Three.js, Plotly, and Facebook Prophet.
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -75,7 +75,7 @@ Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser.
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ### Dashboard (Dark Theme)
 The dashboard features a premium dark glassmorphism UI with real-time weather metrics, 3D crop visualization, NDVI analysis, soil moisture forecasts, and AI-powered farming recommendations.
@@ -95,7 +95,7 @@ The dashboard features a premium dark glassmorphism UI with real-time weather me
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 digitaltwin/
@@ -115,14 +115,4 @@ digitaltwin/
 └── README.md
 ```
 
----
 
-## 🤝 Contributing
-
-Pull requests are welcome. For major changes, open an issue first to discuss what you'd like to change.
-
----
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
