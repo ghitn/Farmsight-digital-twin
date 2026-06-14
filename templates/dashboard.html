@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FarmSight — Digital Twin Dashboard</title>
+    <meta name="description"
+        content="FarmSight digital twin dashboard for precision agriculture monitoring, crop health analysis, and NDVI satellite imagery." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+</head>
+
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 2a10 10 0 0 1 0 20" />
+                <path d="M12 2a10 10 0 0 0 0 20" />
+                <path d="M2 12h20" />
+                <path d="M12 2v20" />
+            </svg>
+            FarmSight
+        </div>
+        <div>
+            <button id="refresh-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                </svg>
+                Refresh Data
+            </button>
+            <span id="refresh-status"></span>
+        </div>
+    </div>
+
+    <!-- Title -->
+    <h1 class="page-title">Digital Twin Dashboard</h1>
+    <p class="page-subtitle">Precision agriculture monitoring &amp; crop intelligence</p>
+
+    <!-- Dashboard Grid -->
+    <div class="dashboard-grid">
+
+        <!-- Card 1: Real-Time Weather -->
+        <div class="card" id="weather-card">
+            <h3>
+                <span class="icon">🌤</span>
+                Real-Time Weather
+            </h3>
+            <div class="metric-row">
+                <div class="metric-pill">
+                    <div class="metric-value">{{ weather.temperature }}°</div>
+                    <div class="metric-label">Temperature</div>
+                </div>
+                <div class="metric-pill">
+                    <div class="metric-value">{{ weather.humidity }}%</div>
+                    <div class="metric-label">Humidity</div>
+                </div>
+                <div class="metric-pill">
+                    <div class="metric-value">{{ weather.rainfall }}</div>
+                    <div class="metric-label">Rainfall mm</div>
+                </div>
+            </div>
+            <ul>
+                <li>
+                    <span class="data-label">Soil Moisture</span>
+                    <span class="data-value">{{ weather.soil_moisture }}%</span>
+                </li>
+            </ul>
+            <div class="weather-badge">
+                ☁️ {{ weather_recommendation }}
+            </div>
+        </div>
+
+        <!-- Card 2: Crop Digital Twin -->
+        <div class="card" id="twin-card">
+            <h3>
+                <span class="icon">🌾</span>
+                Crop Digital Twin
+            </h3>
+            <div id="digitaltwin3d"></div>
+            <ul>
+                <li>
+                    <span class="data-label">Growth Stage</span>
+                    <span class="stage-badge">{{ crop.stage }}</span>
+                </li>
+                <li>
+                    <span class="data-label">Plant Height</span>
+                    <span class="data-value">{{ crop.height|round(2) }} cm</span>
+                </li>
+                <li>
+                    <span class="data-label">Health Score</span>
+                    <span class="data-value">{{ crop.health|round(0) }}%</span>
+                </li>
+            </ul>
+            <div class="btn-group">
+                <button class="btn-irrigate" onclick="sendControl('irrigate')">💧 Irrigate</button>
+                <button class="btn-fertilize" onclick="sendControl('fertilize')">🧪 Fertilize</button>
+            </div>
+        </div>
+
+        <!-- Card 3: NDVI Heatmap -->
+        <div class="card ndvi-section" id="ndvi-card">
+            <h3>
+                <span class="icon">🗺️</span>
+                NDVI Vegetation Index
+            </h3>
+            <div id="ndvi-map"></div>
+            <div class="ndvi-legend">
+                <span>0.0</span>
+                <div class="bar"></div>
+                <span>1.0</span>
+            </div>
+            <p class="ndvi-note">Simulated NDVI grid — higher values indicate healthier vegetation</p>
+        </div>
+
+        <!-- Card 4: NDVI Satellite Image -->
+        <div class="card ndvi-satellite-section" id="satellite-card">
+            <h3>
+                <span class="icon">🛰️</span>
+                NDVI Satellite Imagery
+            </h3>
+            <img src="{{ url_for('static', filename='ndvi_satellite.png') }}" alt="NDVI Satellite View of Farm Field"
+                class="ndvi-satellite-img" id="ndvi-satellite-img" />
+            <p class="ndvi-satellite-caption">
+                Aerial NDVI analysis — Red/brown: stressed, Yellow: moderate, Green: healthy vegetation
+            </p>
+        </div>
+
+        <!-- Card 5: Soil Moisture Forecast -->
+        <div class="card" id="forecast-card">
+            <h3>
+                <span class="icon">📈</span>
+                Soil Moisture Forecast
+            </h3>
+            <div class="forecast-grid">
+                {% for f in forecast %}
+                <div class="forecast-day">
+                    <div class="day-num">Day {{ loop.index }}</div>
+                    <div class="day-value">{{ f.yhat | round(1) }}</div>
+                    <div class="day-unit">% moisture</div>
+                </div>
+                {% else %}
+                <div class="forecast-day">
+                    <div class="day-num">—</div>
+                    <div class="day-value">N/A</div>
+                    <div class="day-unit">no data</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Card 6: AI Recommendations -->
+        <div class="card" id="recommendations-card">
+            <h3>
+                <span class="icon">🤖</span>
+                AI Recommendations
+            </h3>
+            <div class="rec-list">
+                {% for rec in recommendations %}
+                <div class="rec-item">{{ rec }}</div>
+                {% else %}
+                <div class="rec-item">No recommendations available at this time.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- NDVI Heatmap Script -->
+    <script>
+        const ndvi_grid = {{ ndvi_json | safe }};
+        const heatData = [{
+            z: ndvi_grid,
+            type: 'heatmap',
+            colorscale: [
+                [0, '#d73027'],
+                [0.2, '#fc8d59'],
+                [0.4, '#fee08b'],
+                [0.6, '#d9ef8b'],
+                [0.8, '#66bd63'],
+                [1, '#1a9850']
+            ],
+            zmin: 0,
+            zmax: 1,
+            colorbar: {
+                tickfont: { color: '#94a3b8', size: 11 },
+                titlefont: { color: '#94a3b8' },
+                outlinewidth: 0,
+                thickness: 12
+            }
+        }];
+        const heatLayout = {
+            margin: { l: 30, r: 40, t: 10, b: 30 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            xaxis: {
+                showgrid: false,
+                zeroline: false,
+                tickfont: { color: '#64748b', size: 10 }
+            },
+            yaxis: {
+                showgrid: false,
+                zeroline: false,
+                tickfont: { color: '#64748b', size: 10 }
+            }
+        };
+        Plotly.newPlot('ndvi-map', heatData, heatLayout, { responsive: true, displayModeBar: false });
+    </script>
+
+    <!-- 3D Digital Twin Visualization -->
+    <script>
+        const container = document.getElementById('digitaltwin3d');
+        const cWidth = container.clientWidth || 320;
+        const cHeight = container.clientHeight || 380;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(48, cWidth / cHeight, 0.1, 1000);
+        camera.position.set(0, 1.8, 6.2);
+        camera.lookAt(0, 1.4, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(cWidth, cHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setClearColor(0x000000, 0);
+        container.appendChild(renderer.domElement);
+
+        // Darker ambient for dark theme
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const dirLight = new THREE.DirectionalLight(0xffeedd, 0.85);
+        dirLight.position.set(4, 10, 8);
+        scene.add(dirLight);
+        // Subtle rim light from behind
+        const rimLight = new THREE.DirectionalLight(0x38bd94, 0.3);
+        rimLight.position.set(-3, 5, -6);
+        scene.add(rimLight);
+
+        // Backend crop data
+        const heightCm = {{ crop.height | round(2) }};
+        const health = {{ crop.health | round(0) }};
+        const stage = "{{ crop.stage }}";
+
+        const clampedHeight = Math.max(0, Math.min(heightCm, 100));
+        const healthScale = Math.max(0.2, Math.min(health / 100.0, 1.0));
+
+        function stemLengthFromHeight(cm, factor = 1.0) {
+            const h = Math.max(0, Math.min(cm, 100));
+            const heightFactor = 1.0 + h / 25.0;
+            return heightFactor * factor;
+        }
+
+        let phase = "vegetative";
+        if (/head|boot/i.test(stage)) phase = "heading";
+        if (/flower/i.test(stage)) phase = "flowering";
+        if (/grain/i.test(stage)) phase = "grain_filling";
+        if (/matur/i.test(stage)) phase = "maturity";
+        const headsVisible = ["heading", "flowering", "grain_filling", "maturity"].includes(phase);
+
+        const vigor = 0.5 + 0.5 * healthScale;
+        const stemColor = new THREE.Color(0.2 + 0.3 * vigor, 0.65 + 0.3 * vigor, 0.2 + 0.2 * vigor);
+        const leafColor = new THREE.Color(0.2, 0.8 * vigor + 0.2, 0.2);
+        let headColor;
+        if (phase === "maturity") headColor = new THREE.Color(0.9, 0.82, 0.35);
+        else if (phase === "grain_filling") headColor = new THREE.Color(0.75, 0.88, 0.4);
+        else headColor = new THREE.Color(0.45, 0.9, 0.45);
+
+        // Dark soil
+        const soilGeometry = new THREE.BoxGeometry(3, 0.12, 3);
+        const soilMaterial = new THREE.MeshLambertMaterial({ color: 0x3d2b1f });
+        const soil = new THREE.Mesh(soilGeometry, soilMaterial);
+        soil.position.y = 0;
+        scene.add(soil);
+
+        function createStem(x, z, length) {
+            const geom = new THREE.CylinderGeometry(0.035, 0.05, length, 14);
+            const mat = new THREE.MeshLambertMaterial({ color: stemColor });
+            const stem = new THREE.Mesh(geom, mat);
+            stem.position.set(x, length / 2, z);
+            return stem;
+        }
+
+        function createLeaf(x, y, z, length, width, bend, up, side) {
+            const shape = new THREE.Shape();
+            shape.moveTo(0, 0);
+            shape.bezierCurveTo(width * side, length * 0.35, width * side, length * 0.8, 0, length);
+            const extrudeSettings = { depth: 0.012, bevelEnabled: false };
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            const mat = new THREE.MeshLambertMaterial({ color: leafColor, side: THREE.DoubleSide });
+            const leaf = new THREE.Mesh(geometry, mat);
+            leaf.position.set(x, y, z);
+            leaf.rotation.z = bend * side;
+            leaf.rotation.x = up || 0;
+            return leaf;
+        }
+
+        function createGrainHead(x, yTop, z, heightUnits, droopIndex = 0) {
+            const group = new THREE.Group();
+            const bodyGeom = new THREE.CylinderGeometry(0.12, 0.18, heightUnits, 16);
+            const bodyMat = new THREE.MeshLambertMaterial({ color: headColor });
+            const body = new THREE.Mesh(bodyGeom, bodyMat);
+            body.position.set(0, heightUnits / 2, 0);
+            group.add(body);
+
+            const awnGeom = new THREE.ConeGeometry(0.02, 0.25, 6);
+            const awnMat = new THREE.MeshLambertMaterial({ color: headColor });
+            const rings = 3;
+            const awnsPerRing = 8;
+            for (let r = 0; r < rings; r++) {
+                const ringRadius = 0.16 + 0.02 * r;
+                const yRing = heightUnits * (0.3 + 0.2 * r);
+                for (let i = 0; i < awnsPerRing; i++) {
+                    const awn = new THREE.Mesh(awnGeom, awnMat);
+                    const angle = (i / awnsPerRing) * Math.PI * 2;
+                    awn.position.set(
+                        Math.cos(angle) * ringRadius,
+                        yRing,
+                        Math.sin(angle) * ringRadius
+                    );
+                    awn.lookAt(
+                        Math.cos(angle) * (ringRadius + 0.2),
+                        yRing + 0.4,
+                        Math.sin(angle) * (ringRadius + 0.2)
+                    );
+                    group.add(awn);
+                }
+            }
+
+            group.position.set(x, yTop, z);
+            if (phase === "maturity") {
+                group.rotation.x = -0.25;
+                group.rotation.z = (droopIndex - 1) * 0.12;
+            } else {
+                group.rotation.x = -0.15;
+            }
+            return group;
+        }
+
+        const plantGroup = new THREE.Group();
+        plantGroup.scale.set(0.8, 0.8, 0.8);
+
+        const mainStemLen = stemLengthFromHeight(clampedHeight, 1.0);
+        const leftStemLen = stemLengthFromHeight(clampedHeight * 0.8, 0.9);
+        const rightStemLen = stemLengthFromHeight(clampedHeight * 0.7, 0.85);
+
+        const mainStem = createStem(0, 0, mainStemLen);
+        const leftStem = createStem(-0.23, 0.07, leftStemLen);
+        const rightStem = createStem(0.23, -0.08, rightStemLen);
+        plantGroup.add(mainStem, leftStem, rightStem);
+
+        const baseLeafLen = 0.9 + clampedHeight / 50.0;
+        plantGroup.add(createLeaf(-0.3, 0.25, 0.0, 1.4 * baseLeafLen, 0.26, 1.0, 0.3, 1));
+        plantGroup.add(createLeaf(0.3, 0.25, 0.1, 1.4 * baseLeafLen, 0.26, 1.0, 0.3, -1));
+
+        const extraLeaves = Math.max(2, Math.min(Math.round(clampedHeight / 15), 8));
+        for (let i = 0; i < extraLeaves; i++) {
+            const t = (i + 1) / (extraLeaves + 2);
+            const yPos = mainStemLen * (0.3 + 0.5 * t);
+            const side = (i % 2 === 0) ? 1 : -1;
+            const bend = 0.6 + 0.1 * t;
+            const len = baseLeafLen * (0.7 + 0.4 * (1 - t));
+            plantGroup.add(
+                createLeaf(side * 0.08, yPos, 0.02 * side, len, 0.18, bend, 0.3, side)
+            );
+        }
+
+        if (headsVisible) {
+            const headLenMain = 0.5 + clampedHeight / 120.0;
+            const headLenSide = 0.4 + clampedHeight / 140.0;
+            plantGroup.add(createGrainHead(0, mainStemLen, 0, headLenMain, 1));
+            plantGroup.add(createGrainHead(-0.23, leftStemLen, 0.07, headLenSide, 0));
+            plantGroup.add(createGrainHead(0.23, rightStemLen, -0.08, headLenSide, 2));
+        }
+
+        scene.add(plantGroup);
+
+        // Gentle sway animation
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016;
+            plantGroup.rotation.y += 0.004;
+            // Subtle wind sway
+            plantGroup.rotation.z = Math.sin(time * 0.8) * 0.015;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        });
+
+        // Control actions
+        function sendControl(action) {
+            fetch('/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: action })
+            }).then(() => window.location.reload());
+        }
+        window.sendControl = sendControl;
+
+        // Refresh button
+        document.getElementById('refresh-btn').addEventListener('click', function () {
+            const statusEl = document.getElementById('refresh-status');
+            statusEl.innerText = 'Refreshing...';
+            statusEl.style.color = '#38bd94';
+            fetch('/refresh', { method: 'POST' })
+                .then(response => response.json())
+                .then(j => {
+                    statusEl.innerText = '✓ Updated at ' + j.timestamp;
+                    setTimeout(() => location.reload(), 400);
+                })
+                .catch(() => {
+                    statusEl.innerText = '✗ Refresh failed';
+                    statusEl.style.color = '#f87171';
+                });
+        });
+    </script>
+</body>
+
+</html>

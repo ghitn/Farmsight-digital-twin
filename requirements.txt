@@ -1,0 +1,6 @@
+flask
+fbprophet
+plotly
+numpy
+pandas
+
